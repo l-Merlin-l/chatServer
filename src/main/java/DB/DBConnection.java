@@ -9,7 +9,7 @@ public abstract class DBConnection {
     public void start(){
         try {
             Class.forName("org.postgresql.Driver");
-            connection = DriverManager.getConnection(Configuration.DB_HOST, Configuration.DB_USER, Configuration.DB_PASSWORD);
+            connection = DriverManager.getConnection(Configuration.DB_URL, Configuration.DB_USER, Configuration.DB_PASSWORD);
         } catch (ClassNotFoundException | SQLException e) {
             e.printStackTrace();
         }
