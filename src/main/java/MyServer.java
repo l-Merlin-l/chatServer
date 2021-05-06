@@ -20,49 +20,48 @@ public class MyServer {
 
     public MyServer() {
         server = this;
-        try (ServerSocket server = new ServerSocket(PORT)){
-//            authService = new BaseAuthService();
+        try (ServerSocket server = new ServerSocket(PORT)) {
             authService = new DBAuthService();
             authService.start();
             clients = new HashMap<>();
-            while (true){
+            while (true) {
                 Socket socket = server.accept();
                 new ClientHandler(socket);
             }
-        }catch (IOException e){
+        } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    public synchronized void unsubscribe(String nick){
+    public synchronized void unsubscribe(String nick) {
         clients.remove(nick);
     }
 
-    public synchronized void subscribe(ClientHandler clientHandler){
+    public synchronized void subscribe(ClientHandler clientHandler) {
         clients.put(clientHandler.getName(), clientHandler);
     }
 
-    public synchronized void broadcastMsg(String msg){
+    public synchronized void broadcastMsg(String msg) {
         clients.forEach((k, client) -> client.sendMsg(msg));
     }
 
-    public synchronized void privateMsg(String name, String fromName, String msg){
-        if(clients.containsKey(fromName)){
+    public synchronized void privateMsg(String name, String fromName, String msg) {
+        if (clients.containsKey(fromName)) {
             clients.get(fromName).sendMsg("Личное сообщение от " + name + ": " + msg);
             clients.get(name).sendMsg("Личное сообщение для " + fromName + ": " + msg);
         }
     }
 
-    public synchronized void serverMsg(String fromName, String msg){
+    public synchronized void serverMsg(String fromName, String msg) {
         clients.get(fromName).sendMsg(msg);
     }
 
 
-    public synchronized boolean isNickBusy(String nick){
+    public synchronized boolean isNickBusy(String nick) {
         return clients.containsKey(nick);
     }
 
-    public  AuthService getAuthService(){
+    public AuthService getAuthService() {
         return authService;
     }
 }
