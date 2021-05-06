@@ -1,7 +1,10 @@
+import DB.DBChangeNick;
+
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.Socket;
+import java.sql.SQLException;
 
 public class ClientHandler {
     private MyServer server;
@@ -9,6 +12,7 @@ public class ClientHandler {
     private DataInputStream in;
     private DataOutputStream out;
     private String name = "";
+    private String login = "";
 
     public ClientHandler(Socket socket){
         try {
@@ -48,7 +52,7 @@ public class ClientHandler {
             String str = in.readUTF();
             if(str.startsWith("/auth")){
                 String [] parts = str.split(" ");
-                String login = parts[1];
+                login = parts[1];
                 String password = parts[2];
                 String nick = server.getAuthService().getNickLoginPass(login, password);
                 if (nick != null){
@@ -60,7 +64,7 @@ public class ClientHandler {
                         thread.stop();
                         return;
                     }else {
-                        sendMsg("Ник занят");
+                        sendMsg("Данный пользователь уже в системе");
                     }
                 }else {
                     sendMsg("Неверные логин/пароль");
@@ -85,10 +89,31 @@ public class ClientHandler {
 
             if(strFormClient.startsWith("/w ")){
                 strFormClient = strFormClient.replace("/w ", "");
-                String fromName = strFormClient.substring(0, strFormClient.indexOf(" "));
-                strFormClient = strFormClient.replace(fromName+" ", "");
-                server.privateMsg(name, fromName, strFormClient );
-            }else {
+                if (strFormClient.indexOf(" ")>0){
+                    String fromName = strFormClient.substring(0, strFormClient.indexOf(" "));
+                    strFormClient = strFormClient.replace(fromName+" ", "");
+                    server.privateMsg(name, fromName, strFormClient );
+                }
+            }else if(strFormClient.startsWith("/changeNick ")){
+                String [] parts = strFormClient.split(" ");
+                if(parts.length == 2) {
+                    DBChangeNick dbChangeNick = new DBChangeNick();
+                    dbChangeNick.start();
+                    try {
+                        if (dbChangeNick.updateNick(login, parts[1])){
+                            server.unsubscribe(name);
+                            server.subscribe(this);
+                            name =  parts[1];
+                        }else{
+                            server.serverMsg(name, "Данный ник уже занят");
+                        }
+                    } catch (SQLException throwables) {
+                        server.serverMsg(name, "Ошибка при обновлении ника, повторите попытку");
+                    }
+                }else {
+                    server.serverMsg(name, "Для смены ника нужна запись формата \"/changeNick newNick\" ");
+                }
+            }else{
                 System.out.println(name + ": " + strFormClient);
                 if (strFormClient.equals("/end")) {
                     return;
@@ -99,7 +124,7 @@ public class ClientHandler {
     }
 
     public void closeUser(){
-        server.unsubscribe(this);
+        server.unsubscribe(name);
         server.broadcastMsg(name + " вышел из чата");
         closeConnection();
     }

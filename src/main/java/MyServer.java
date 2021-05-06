@@ -1,3 +1,6 @@
+import DB.AuthService;
+import DB.DBAuthService;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
@@ -18,7 +21,8 @@ public class MyServer {
     public MyServer() {
         server = this;
         try (ServerSocket server = new ServerSocket(PORT)){
-            authService = new BaseAuthService();
+//            authService = new BaseAuthService();
+            authService = new DBAuthService();
             authService.start();
             clients = new HashMap<>();
             while (true){
@@ -30,8 +34,8 @@ public class MyServer {
         }
     }
 
-    public synchronized void unsubscribe(ClientHandler clientHandler){
-        clients.remove(clientHandler.getName());
+    public synchronized void unsubscribe(String nick){
+        clients.remove(nick);
     }
 
     public synchronized void subscribe(ClientHandler clientHandler){
@@ -48,6 +52,11 @@ public class MyServer {
             clients.get(name).sendMsg("Личное сообщение для " + fromName + ": " + msg);
         }
     }
+
+    public synchronized void serverMsg(String fromName, String msg){
+        clients.get(fromName).sendMsg(msg);
+    }
+
 
     public synchronized boolean isNickBusy(String nick){
         return clients.containsKey(nick);
