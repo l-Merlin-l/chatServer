@@ -6,17 +6,18 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class MyServer {
     private static MyServer server;
+    private final int PORT = 8080;
+    private Map<String, ClientHandler> clients;
+    private AuthService authService;
 
     public static MyServer getServer() {
         return server;
     }
-
-    private final int PORT = 8080;
-    private Map<String, ClientHandler> clients;
-    private AuthService authService;
 
     public MyServer() {
         server = this;
@@ -24,9 +25,10 @@ public class MyServer {
             authService = new DBAuthService();
             authService.start();
             clients = new HashMap<>();
+            ExecutorService clients = Executors.newCachedThreadPool();
             while (true) {
                 Socket socket = server.accept();
-                new ClientHandler(socket);
+                clients.execute(() -> new ClientHandler(socket));
             }
         } catch (IOException e) {
             e.printStackTrace();

@@ -20,16 +20,14 @@ public class ClientHandler {
             this.socket = socket;
             this.in = new DataInputStream(socket.getInputStream());
             this.out = new DataOutputStream(socket.getOutputStream());
-            new Thread(() -> {
-                try {
-                    auth();
-                    readMsg();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } finally {
-                    closeUser();
-                }
-            }).start();
+            try {
+                auth();
+                readMsg();
+            } catch (IOException e) {
+                e.printStackTrace();
+            } finally {
+                closeUser();
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -43,7 +41,7 @@ public class ClientHandler {
                 sendMsg("/end");
                 closeConnection();
             } catch (InterruptedException e) {
-                e.printStackTrace();
+
             }
         });
         thread.setDaemon(true);
@@ -61,7 +59,7 @@ public class ClientHandler {
                         name = nick;
                         server.broadcastMsg(name + " зашел в чат");
                         server.subscribe(this);
-                        thread.stop();
+                        thread.interrupt();
                         return;
                     } else {
                         sendMsg("Данный пользователь уже в системе");
