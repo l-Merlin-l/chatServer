@@ -1,5 +1,7 @@
 import DB.AuthService;
 import DB.DBAuthService;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -15,12 +17,15 @@ public class MyServer {
     private Map<String, ClientHandler> clients;
     private AuthService authService;
 
+    private static final Logger LOG = LogManager.getLogger(MyServer.class.getName());
+
     public static MyServer getServer() {
         return server;
     }
 
     public MyServer() {
         server = this;
+        LOG.trace("Сервер запущен");
         try (ServerSocket server = new ServerSocket(PORT)) {
             authService = new DBAuthService();
             authService.start();
@@ -31,7 +36,7 @@ public class MyServer {
                 clients.execute(() -> new ClientHandler(socket));
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.error(e);
         }
     }
 

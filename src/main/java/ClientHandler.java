@@ -1,4 +1,6 @@
 import DB.DBChangeNick;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -14,6 +16,9 @@ public class ClientHandler {
     private String name = "";
     private String login = "";
 
+    private Logger LOG = LogManager.getLogger(MyServer.class.getName());
+
+
     public ClientHandler(Socket socket) {
         try {
             this.server = MyServer.getServer();
@@ -24,12 +29,12 @@ public class ClientHandler {
                 auth();
                 readMsg();
             } catch (IOException e) {
-                e.printStackTrace();
+                LOG.error(e.toString());
             } finally {
                 closeUser();
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.error(e.toString());
         }
     }
 
@@ -40,8 +45,8 @@ public class ClientHandler {
                 sendMsg("Вы отключены за превышение времени ожидания подключения к серверу");
                 sendMsg("/end");
                 closeConnection();
+                LOG.info("Не авторизованный пользователь отключен из-за превышения времени ожидания");
             } catch (InterruptedException e) {
-
             }
         });
         thread.setDaemon(true);
@@ -60,14 +65,18 @@ public class ClientHandler {
                         server.broadcastMsg(name + " зашел в чат");
                         server.subscribe(this);
                         thread.interrupt();
+                        LOG.info("Пользователь под ником {} вошел в в чат", name);
                         return;
                     } else {
+                        LOG.warn("Повторная попытка войти в чат пользователя под ником {} ", name);
                         sendMsg("Данный пользователь уже в системе");
                     }
                 } else {
+                    LOG.warn("Неверный запрос на авторизацию");
                     sendMsg("Неверные логин/пароль");
                 }
             } else {
+                LOG.warn("Неверный запрос на авторизацию");
                 sendMsg("Перед тем как отправлять сообщение  авторизуйтесь через команду </auth login pass>");
             }
         }
@@ -77,7 +86,7 @@ public class ClientHandler {
         try {
             out.writeUTF(msg);
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.error(e.toString());
         }
     }
 
@@ -101,18 +110,23 @@ public class ClientHandler {
                         if (dbChangeNick.updateNick(login, parts[1])) {
                             server.unsubscribe(name);
                             server.subscribe(this);
+                            LOG.info("Пользователь под ником {} сменил его на {}", name, parts[1]);
                             name = parts[1];
+
                         } else {
+                            LOG.warn("Пользователь под ником {} пытался сменить его на уже занятый", name);
                             server.serverMsg(name, "Данный ник уже занят");
                         }
-                    } catch (SQLException throwables) {
+                    } catch (SQLException e) {
+                        LOG.error(e.toString());
                         server.serverMsg(name, "Ошибка при обновлении ника, повторите попытку");
                     }
                 } else {
+                    LOG.warn("Пользователь под ником {} в неправильном формате ввел запрос для смены ника", name);
                     server.serverMsg(name, "Для смены ника нужна запись формата \"/changeNick newNick\" ");
                 }
             } else {
-                System.out.println(name + ": " + strFormClient);
+                LOG.trace("{}: {}", name, strFormClient);
                 if (strFormClient.equals("/end")) {
                     return;
                 }
@@ -123,6 +137,7 @@ public class ClientHandler {
 
     public void closeUser() {
         server.unsubscribe(name);
+        LOG.info("{} вышел из чата", name);
         server.broadcastMsg(name + " вышел из чата");
         closeConnection();
     }
@@ -131,17 +146,17 @@ public class ClientHandler {
         try {
             in.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.error(e.toString());
         }
         try {
             out.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.error(e.toString());
         }
         try {
             socket.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            LOG.error(e.toString());
         }
     }
 
